@@ -22,17 +22,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save'])) {
     $zustand = trim($_POST['zustand']);
     $verkauft = isset($_POST['verkauft']) ? 1 : 0;
 
-    if ($id > 0) {
-        $stmt = $db->prepare('UPDATE buecher SET katalog=?, nummer=?, Title=?, kategorie=?, autor=?, Beschreibung=?, zustand=?, verkauft=? WHERE id=?');
-        $stmt->execute([$katalog, $nummer, $titel, $kategorie, $autor, $beschreibung, $zustand, $verkauft, $id]);
-        $success = 'Buch erfolgreich aktualisiert.';
+    // Server-seitige Validierung
+    if (empty($titel)) {
+        $error = 'Titel ist erforderlich.';
+    } elseif (strlen($titel) > 255) {
+        $error = 'Titel darf maximal 255 Zeichen lang sein.';
+    } elseif (empty($autor)) {
+        $error = 'Autor ist erforderlich.';
+    } elseif (strlen($autor) > 255) {
+        $error = 'Autor darf maximal 255 Zeichen lang sein.';
+    } elseif ($katalog <= 0) {
+        $error = 'Katalognummer muss eine positive Zahl sein.';
+    } elseif ($kategorie <= 0) {
+        $error = 'Bitte eine Kategorie auswählen.';
     } else {
-        $stmt = $db->prepare('INSERT INTO buecher (katalog, nummer, Title, kategorie, autor, Beschreibung, zustand, verkauft, foto) VALUES (?,?,?,?,?,?,?,?,?)');
-        $stmt->execute([$katalog, $nummer, $titel, $kategorie, $autor, $beschreibung, $zustand, $verkauft, 'book.jpg']);
-        $success = 'Buch erfolgreich erstellt.';
+        if ($id > 0) {
+            $stmt = $db->prepare('UPDATE buecher SET katalog=?, nummer=?, Title=?, kategorie=?, autor=?, Beschreibung=?, zustand=?, verkauft=? WHERE id=?');
+            $stmt->execute([$katalog, $nummer, $titel, $kategorie, $autor, $beschreibung, $zustand, $verkauft, $id]);
+            $success = 'Buch erfolgreich aktualisiert.';
+        } else {
+            $stmt = $db->prepare('INSERT INTO buecher (katalog, nummer, Title, kategorie, autor, Beschreibung, zustand, verkauft, foto) VALUES (?,?,?,?,?,?,?,?,?)');
+            $stmt->execute([$katalog, $nummer, $titel, $kategorie, $autor, $beschreibung, $zustand, $verkauft, 'book.jpg']);
+            $success = 'Buch erfolgreich erstellt.';
+        }
+        header('Location: books.php?success=' . urlencode($success));
+        exit;
     }
-    header('Location: books.php?success=' . urlencode($success));
-    exit;
+    // Bei Validierungsfehler: Formular mit eingegebenen Werten erneut anzeigen
+    $action = $id > 0 ? 'edit' : 'add';
+    $editBook = [
+        'id'           => $id,
+        'Title'        => $titel,
+        'katalog'      => $katalog,
+        'nummer'       => $nummer,
+        'kategorie'    => $kategorie,
+        'autor'        => $autor,
+        'Beschreibung' => $beschreibung,
+        'zustand'      => $zustand,
+        'verkauft'     => $verkauft,
+    ];
 }
 
 // ── POST: Löschen ─────────────────────────────────────────────────────────────
@@ -96,7 +124,10 @@ require_once dirname(__DIR__) . '/includes/header.php';
 
     <div class="admin-content">
         <?php if ($success): ?>
-            <div class="alert alert-success"><?= htmlspecialchars($success) ?></div>
+            <div class="alert alert-success"><?= h($success) ?></div>
+        <?php endif; ?>
+        <?php if ($error): ?>
+            <div class="alert alert-error"><?= h($error) ?></div>
         <?php endif; ?>
 
         <?php if ($action === 'add' || $action === 'edit'): ?>
@@ -117,33 +148,33 @@ require_once dirname(__DIR__) . '/includes/header.php';
                         <div class="form-group">
                             <label>Katalognummer *</label>
                             <input type="number" name="katalog" class="form-control"
-                                value="<?= htmlspecialchars($editBook['katalog'] ?? '') ?>" required>
+                                value="<?= h($editBook['katalog'] ?? '') ?>" required>
                         </div>
                         <div class="form-group">
                             <label>Nummer *</label>
                             <input type="number" name="nummer" class="form-control"
-                                value="<?= htmlspecialchars($editBook['nummer'] ?? '') ?>" required>
+                                value="<?= h($editBook['nummer'] ?? '') ?>" required>
                         </div>
                     </div>
 
                     <div class="form-group">
                         <label>Titel *</label>
                         <input type="text" name="titel" class="form-control"
-                            value="<?= htmlspecialchars($editBook['Title'] ?? '') ?>" required>
+                            value="<?= h($editBook['Title'] ?? '') ?>" required>
                     </div>
 
                     <div class="form-row form-row-2">
                         <div class="form-group">
                             <label>Autor *</label>
                             <input type="text" name="autor" class="form-control"
-                                value="<?= htmlspecialchars($editBook['autor'] ?? '') ?>" required>
+                                value="<?= h($editBook['autor'] ?? '') ?>" required>
                         </div>
                         <div class="form-group">
                             <label>Kategorie *</label>
                             <select name="kategorie" class="form-control" required>
                                 <option value="">– Bitte wählen –</option>
                                 <?php foreach ($kats as $k): ?>
-                                    <option value="<?= $k['id'] ?>" <?= ($editBook['kategorie'] ?? '') == $k['id'] ? 'selected' : '' ?>><?= htmlspecialchars($k['kategorie']) ?></option>
+                                    <option value="<?= $k['id'] ?>" <?= ($editBook['kategorie'] ?? '') == $k['id'] ? 'selected' : '' ?>><?= h($k['kategorie']) ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
@@ -172,7 +203,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
                     <div class="form-group">
                         <label>Beschreibung</label>
                         <textarea name="beschreibung"
-                            class="form-control"><?= htmlspecialchars($editBook['Beschreibung'] ?? '') ?></textarea>
+                            class="form-control"><?= h($editBook['Beschreibung'] ?? '') ?></textarea>
                     </div>
 
                     <div style="display:flex;gap:1rem;">
@@ -196,12 +227,12 @@ require_once dirname(__DIR__) . '/includes/header.php';
             <!-- Filter -->
             <form method="get" action="books.php" class="admin-filter">
                 <input type="text" name="search" class="form-control" placeholder="Titel oder Autor suchen..."
-                    value="<?= htmlspecialchars($search) ?>">
+                    value="<?= h($search) ?>">
                 <select name="kategorie" class="form-control">
                     <option value="0">Alle Kategorien</option>
                     <?php foreach ($kats as $k): ?>
                         <option value="<?= $k['id'] ?>" <?= $filterKat === (int) $k['id'] ? 'selected' : '' ?>>
-                            <?= htmlspecialchars($k['kategorie']) ?>
+                            <?= h($k['kategorie']) ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
@@ -233,10 +264,10 @@ require_once dirname(__DIR__) . '/includes/header.php';
                             <?php foreach ($books as $b): ?>
                                 <tr>
                                     <td class="font-mono"><?= $b['id'] ?></td>
-                                    <td class="fw-bold"><?= htmlspecialchars($b['titel'] ?? '–') ?></td>
-                                    <td><?= htmlspecialchars($b['autor'] ?? '–') ?></td>
-                                    <td><?= htmlspecialchars($b['kategorie'] ?? '–') ?></td>
-                                    <td><?= htmlspecialchars($b['zustand'] ?? '–') ?></td>
+                                    <td class="fw-bold"><?= h($b['titel'] ?? '–') ?></td>
+                                    <td><?= h($b['autor'] ?? '–') ?></td>
+                                    <td><?= h($b['kategorie'] ?? '–') ?></td>
+                                    <td><?= h($b['zustand'] ?? '–') ?></td>
                                     <td class="font-mono"><?= $b['katalog'] ?>-<?= $b['nummer'] ?></td>
                                     <td>
                                         <?php if ($b['verkauft']): ?>
@@ -250,7 +281,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                             <a href="books.php?action=edit&id=<?= $b['id'] ?>" class="btn btn-ghost btn-sm"
                                                 title="Bearbeiten">✏️</a>
                                             <form method="post" action="books.php"
-                                                onsubmit="return confirm('Buch &quot;<?= htmlspecialchars(addslashes($b['titel'] ?? '')) ?>&quot; wirklich löschen?');"
+                                                onsubmit="return confirm('Buch &quot;<?= h(addslashes($b['titel'] ?? '')) ?>&quot; wirklich löschen?');"
                                                 style="display:inline;">
                                                 <input type="hidden" name="id" value="<?= $b['id'] ?>">
                                                 <button type="submit" name="delete" class="btn btn-ghost btn-sm"
