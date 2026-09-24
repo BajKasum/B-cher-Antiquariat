@@ -46,7 +46,7 @@ require_once __DIR__ . '/includes/header.php';
         <p>Melden Sie sich an, um auf die Verwaltungsfunktionen zuzugreifen</p>
 
         <?php if ($error): ?>
-            <div class="alert alert-error"><?= htmlspecialchars($error) ?></div>
+            <div class="alert alert-error"><?= h($error) ?></div>
         <?php endif; ?>
 
         <form method="post" action="">
@@ -54,7 +54,7 @@ require_once __DIR__ . '/includes/header.php';
                 <label for="email">E-Mail-Adresse</label>
                 <input type="email" id="email" name="email" class="form-control"
                     placeholder="admin@beispiel.de"
-                    value="<?= htmlspecialchars($_POST['email'] ?? '') ?>" required>
+                    value="<?= h($_POST['email'] ?? '') ?>" required>
             </div>
             <div class="form-group">
                 <label for="password">Passwort</label>

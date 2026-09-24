@@ -41,15 +41,15 @@ require_once dirname(__DIR__) . '/includes/header.php';
         <div class="admin-header">
             <div>
                 <h1>Passwort ändern</h1>
-                <p>Angemeldet als <?= htmlspecialchars($user['name']) ?></p>
+                <p>Angemeldet als <?= h($user['name']) ?></p>
             </div>
         </div>
 
         <?php if ($success): ?>
-            <div class="alert alert-success"><?= htmlspecialchars($success) ?></div>
+            <div class="alert alert-success"><?= h($success) ?></div>
         <?php endif; ?>
         <?php if ($error): ?>
-            <div class="alert alert-error"><?= htmlspecialchars($error) ?></div>
+            <div class="alert alert-error"><?= h($error) ?></div>
         <?php endif; ?>
 
         <div class="card card-body" style="max-width:480px;">
